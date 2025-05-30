@@ -18,14 +18,13 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 echo "=== Aguardando ArgoCD ficar pronto ==="
 kubectl wait --for=condition=available --timeout=180s deployment/argocd-server -n argocd
 
-echo "=== Alterando senha do admin do ArgoCD ==="
-# Gera o hash da senha 'admim123'
-HASH=$(kubectl -n argocd exec deploy/argocd-server -- argocd-util hash-password admim123 | tail -n1)
-
-kubectl -n argocd patch secret argocd-secret \
-  -p "{\"stringData\": {\"admin.password\": \"$HASH\", \"admin.passwordMtime\": \"$(date +%FT%T%Z)\"}}"
-
-echo "=== Reiniciando o pod do ArgoCD Server para aplicar a nova senha ==="
-kubectl -n argocd delete pod -l app.kubernetes.io/name=argocd-server
+echo "=== Recuperando a senha inicial do admin do ArgoCD ==="
+ARGOCD_PWD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+echo
+echo "****************************************************"
+echo " ArgoCD admin password:"
+echo "     $ARGOCD_PWD"
+echo "****************************************************"
+echo
 
 echo "=== Pronto! ArgoCD instalado e senha do admin alterada para 'admim123' ==="

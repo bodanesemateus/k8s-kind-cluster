@@ -69,9 +69,12 @@ To access the ArgoCD UI locally:
 kubectl port-forward svc/argocd-server -n argocd 8081:443
 ```
 
-Then open [https://localhost:8081](https://localhost:8081) in your browser.  
-Login: `admin`  
-Password: `admim123`
+Then open [https://localhost:8081](https://localhost:8081) in your browser.
+Login: `admin`
+
+Password: (the script will print the initial password in the terminal, highlighted between asterisks)
+
+> The initial ArgoCD admin password is generated automatically and will be shown in your terminal after running `start-cluster.sh`.
 
 ## Deployments: What are they and what are they for?
 
