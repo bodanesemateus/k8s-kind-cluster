@@ -3,9 +3,16 @@ kind: Application
 metadata:
   name: hello-api-app
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: bodanesemateus/hello-api
+    argocd-image-updater.argoproj.io/bodanesemateus_hello-api.update-strategy: latest
+    argocd-image-updater.argoproj.io/write-back-method: git
 spec:
   project: default
   source:
+    kustomize:
+      images:
+        - bodanesemateus/hello-api:1.0.0
     repoURL: 'https://github.com/bodanesemateus/k8s-kind-cluster.git'
     targetRevision: main
     path: k8s/manifests

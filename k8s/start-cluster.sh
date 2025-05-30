@@ -15,6 +15,9 @@ echo "=== Instalando ArgoCD ==="
 kubectl create namespace argocd || true
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
+echo "=== Instalando ArgoCD Image Updater ==="
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj-labs/argocd-image-updater/stable/manifests/install.yaml
+
 echo "=== Aguardando ArgoCD ficar pronto ==="
 kubectl wait --for=condition=available --timeout=180s deployment/argocd-server -n argocd
 
@@ -26,5 +29,3 @@ echo " ArgoCD admin password:"
 echo "     $ARGOCD_PWD"
 echo "****************************************************"
 echo
-
-echo "=== Pronto! ArgoCD instalado e senha do admin alterada para 'admim123' ==="

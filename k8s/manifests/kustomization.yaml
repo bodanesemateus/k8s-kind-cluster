@@ -1,0 +1,9 @@
+resources:
+  - api-deployment.yaml
+  - api-service.yaml
+  - postgress-deployment.yaml
+  - postgress-service.yaml
+
+images:
+  - name: bodanesemateus/hello-api
+    newTag: "1.0.0"
