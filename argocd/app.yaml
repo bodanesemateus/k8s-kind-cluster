@@ -5,15 +5,17 @@ metadata:
   namespace: argocd
   annotations:
     argocd-image-updater.argoproj.io/image-list: bodanesemateus/hello-api
-    argocd-image-updater.argoproj.io/bodanesemateus_hello-api.update-strategy: latest
+    argocd-image-updater.argoproj.io/hello-api-app.update-strategy: semver  
+    argocd-image-updater.argoproj.io/hello-api-app.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$  
     argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/git-branch: main
 spec:
   project: default
   source:
-    kustomize: {} 
     repoURL: 'https://github.com/bodanesemateus/k8s-kind-cluster.git'
-    targetRevision: main
+    targetRevision: HEAD
     path: k8s/manifests
+    kustomize: {} 
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: default
