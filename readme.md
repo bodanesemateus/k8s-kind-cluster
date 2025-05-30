@@ -50,8 +50,6 @@ What does this script do?
 
 ---
 
-- Installs ArgoCD and sets the admin password to `admim123`
-
 
 ## GitOps with ArgoCD
 
