@@ -13,23 +13,6 @@ We’ll see how to create the cluster, what each manifest is for, and how to use
 docker build -t hello-api:latest api/
 ```
 
-2. **Load the image into the Kind cluster:**
-
-```bash
-kind load docker-image hello-api:latest --name project-test
-```
-
-> **Tip:**  
-> The cluster name (`project-test`) should be the same as the one you used when creating Kind.  
-> If you don’t remember, run `kind get clusters`.
-
-Done! Now Kind’s Kubernetes will use your local image instead of trying to pull it from Docker Hub.  
-After that, just apply the manifests as usual:
-
-```bash
-kubectl apply -f k8s/manifests/
-```
-
 ---
 
 ## How to spin up the cluster
