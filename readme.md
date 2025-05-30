@@ -76,6 +76,92 @@ Password: (the script will print the initial password in the terminal, highlight
 
 > The initial ArgoCD admin password is generated automatically and will be shown in your terminal after running `start-cluster.sh`.
 
+---
+
+## Automatic Image Updates with ArgoCD Image Updater
+
+### What is ArgoCD Image Updater?
+
+[ArgoCD Image Updater](https://argocd-image-updater.readthedocs.io/) is a tool that automates the process of updating container image tags in your Kubernetes manifests.  
+It watches your container registries (like Docker Hub) for new image versions and, when it finds a new tag (for example, a new release of your API), it automatically updates your manifests in the Git repository and triggers a new deployment via ArgoCD.
+
+**In short:**  
+You push a new image to Docker Hub → Image Updater detects it → updates the manifest in Git → ArgoCD deploys the new version automatically.  
+This is true GitOps: your cluster state always matches what’s in Git, and your images are always up-to-date.
+
+### How is it implemented here?
+
+- The folder `argocd/` contains:
+  - `app.yaml`: The ArgoCD Application manifest, with annotations for the Image Updater.
+  - `image-updater.secret.yaml`: Secret with configuration for the Image Updater (template, see below).
+  - `repo-credentials.yaml`: Secret with credentials for ArgoCD to access your GitHub repo (template, see below).
+
+- The `app.yaml` manifest is annotated to tell Image Updater which image to watch and how to update it.
+
+- The Image Updater is installed and runs in the `argocd` namespace, watching for new image tags and updating the manifests in your GitHub repo automatically.
+
+### How to configure secrets securely
+
+**Never commit your real GitHub token in the repository!**  
+Instead, version only the template files and inject the real values at deploy time.
+
+#### 1. `image-updater.secret.yaml` (template)
+
+```yaml
+apiVersion: v1  
+kind: Secret  
+metadata:
+  name: argocd-image-updater-config
+  namespace: argocd  
+stringData:  
+  log.level: debug  
+  registries.conf: | 
+    registries:
+    - name: Docker Hub
+      prefix: docker.io
+      api_url: https://registry-1.docker.io
+  git.config: |  
+    commit_message_template: "chore: update image to {{.NewTag}}"
+    author_name: "ArgoCD Image Updater"
+    author_email: "argocd-image-updater@example.com"
+  git-credentials: |
+    https://bodanesemateus:$YOUR_GITHUB_TOKEN@github.com
+```
+
+#### 2. `repo-credentials.yaml` (template)
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-github-k8s-credentials
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository 
+stringData:
+  type: git 
+  url: https://github.com/bodanesemateus/k8s-kind-cluster.git
+  username: $YOUR_GITHUB_USERNAME
+  password: $YOUR_GITHUB_TOKEN
+  log.level: debug
+```
+
+**Replace** `$YOUR_GITHUB_TOKEN` and `$YOUR_GITHUB_USERNAME`.
+
+---
+
+### How to check if Image Updater is working
+
+- Check the logs of the Image Updater pod:
+
+```bash
+kubectl logs -n argocd deployment/argocd-image-updater
+```
+
+- When you push a new image to Docker Hub, the Image Updater should detect it, update the manifest in your repo, and ArgoCD will deploy the new version.
+
+---
+
 ## Deployments: What are they and what are they for?
 
 ### **API Deployment (`api-deployment.yaml`)**
