@@ -50,6 +50,29 @@ What does this script do?
 
 ---
 
+- Installs ArgoCD and sets the admin password to `admim123`
+
+
+## GitOps with ArgoCD
+
+This project comes with [ArgoCD](https://argo-cd.readthedocs.io/) set up for GitOps.  
+ArgoCD keeps an eye on your GitHub repo and automatically applies any changes you make to the Kubernetes manifests.
+
+How it works here:
+- The folder `argocd/` has the ArgoCD Application manifest (`app.yaml`).
+- When you run `start-cluster.sh`, ArgoCD is installed and configured.
+- Any change you push to the manifests in this repo will be picked up and applied by ArgoCD automatically.
+
+To access the ArgoCD UI locally:
+
+```bash
+kubectl port-forward svc/argocd-server -n argocd 8081:443
+```
+
+Then open [https://localhost:8081](https://localhost:8081) in your browser.  
+Login: `admin`  
+Password: `admim123`
+
 ## Deployments: What are they and what are they for?
 
 ### **API Deployment (`api-deployment.yaml`)**
