@@ -9,4 +9,8 @@ spec:
   - port: 8000
     targetPort: 8000
     nodePort: 30080
+  - port: 8002
+    targetPort: 8002
+    nodePort: 30082
   type: NodePort
+  
