@@ -10,9 +10,7 @@ metadata:
 spec:
   project: default
   source:
-    kustomize:
-      images:
-        - bodanesemateus/hello-api:1.0.0
+    kustomize: {} 
     repoURL: 'https://github.com/bodanesemateus/k8s-kind-cluster.git'
     targetRevision: main
     path: k8s/manifests
