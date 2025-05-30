@@ -18,7 +18,7 @@ spec:
         command: ['sh', '-c', 'until nc -z postgres-service 5432; do echo waiting for postgres; sleep 2; done;']
       containers:
       - name: hello-api
-        image: bodanesemateus/hello-api:latest
+        image: seu-usuario/hello-api:latest
         imagePullPolicy: Always
         env:
         - name: DB_HOST
@@ -33,4 +33,3 @@ spec:
           value: "5432"
         ports:
         - containerPort: 8000
-          hostPort: 8000
