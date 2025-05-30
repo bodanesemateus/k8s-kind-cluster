@@ -1,0 +1,3 @@
+kustomize:
+  images:
+  - bodanesemateus/hello-api:2.0.0
