@@ -1,3 +1,3 @@
 kustomize:
   images:
-  - bodanesemateus/hello-api:3.0.0@sha256:867dd968a2c60b617da2b15f6e05a4f3109dd814d7f5667a633bc3a7e1de306b
+  - bodanesemateus/hello-api:3.0.0@sha256:518add2691cc2e59a60a25efd0a8647c07eb14183e5a90ec717736933b79db44
