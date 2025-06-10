@@ -4,9 +4,13 @@ metadata:
   name: hello-api-app
   namespace: argocd
   annotations:
-    argocd-image-updater.argoproj.io/image-list: hello-api=bodanesemateus/hello-api:3.0.0
-    argocd-image-updater.argoproj.io/hello-api.update-strategy: digest
-    argocd-image-updater.argoproj.io/hello-api.allow-tags: regexp:^[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/image-list: |
+      hello-api-3-0-0=bodanesemateus/hello-api:3.0.0
+      hello-api-3-0-1=bodanesemateus/hello-api:3.0.1
+    argocd-image-updater.argoproj.io/hello-api-3-0-0.update-strategy: digest
+    argocd-image-updater.argoproj.io/hello-api-3-0-1.update-strategy: digest
+    argocd-image-updater.argoproj.io/hello-api-3-0-0.allow-tags: regexp:^[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/hello-api-3-0-1.allow-tags: regexp:^[0-9]+\.[0-9]+\.[0-9]+$
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
 spec:
@@ -24,4 +28,4 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
+    - CreateNamespace=true
