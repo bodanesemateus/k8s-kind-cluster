@@ -29,9 +29,9 @@ spec:
           mountPath: /var/lib/postgresql/data
         resources:  # Adicionando limites de memória
           limits:
-            memory: 100Mi
+            memory: 11Mi
           requests:
-            memory: 100Mi
+            memory: 12Mi
       volumes:
       - name: postgres-storage
         emptyDir: {}
