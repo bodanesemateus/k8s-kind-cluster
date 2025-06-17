@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: filebeat
-  namespace: kube-system
+  namespace: default
   labels:
     k8s-app: filebeat
 ---
@@ -13,7 +13,7 @@ metadata:
   labels:
     k8s-app: filebeat
 rules:
-- apiGroups: [""] # "" indicates the core API group
+- apiGroups: [""]
   resources:
   - namespaces
   - pods
@@ -35,15 +35,14 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: filebeat
-  # should be the namespace where filebeat is running
-  namespace: kube-system
+  namespace: default
   labels:
     k8s-app: filebeat
 rules:
   - apiGroups:
-      - coordination.k8s.io
+    - coordination.k8s.io
     resources:
-      - leases
+    - leases
     verbs: ["get", "create", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -56,9 +55,9 @@ metadata:
 rules:
   - apiGroups: [""]
     resources:
-      - configmaps
+    - configmaps
     resourceNames:
-      - kubeadm-config
+    - kubeadm-config
     verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -68,7 +67,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: filebeat
-  namespace: kube-system
+  namespace: default
 roleRef:
   kind: ClusterRole
   name: filebeat
@@ -78,11 +77,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: filebeat
-  namespace: kube-system
+  namespace: default
 subjects:
   - kind: ServiceAccount
     name: filebeat
-    namespace: kube-system
+    namespace: default
 roleRef:
   kind: Role
   name: filebeat
@@ -96,7 +95,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: filebeat
-    namespace: kube-system
+    namespace: default
 roleRef:
   kind: Role
   name: filebeat-kubeadm-config
@@ -106,7 +105,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: filebeat-config
-  namespace: kube-system
+  namespace: default
   labels:
     k8s-app: filebeat
 data:
@@ -116,45 +115,41 @@ data:
       paths:
         - /var/log/containers/*.log
       processors:
-        - drop_event:
-            when:
-              not:
-                equals:
-                  kubernetes.namespace: "default"
         - add_kubernetes_metadata:
             host: ${NODE_NAME}
             matchers:
             - logs_path:
                 logs_path: "/var/log/containers/"
 
-    # To enable hints based autodiscover, remove `filebeat.inputs` configuration and uncomment this:
-    #filebeat.autodiscover:
-    #  providers:
-    #    - type: kubernetes
-    #      node: ${NODE_NAME}
-    #      hints.enabled: true
-    #      hints.default_config:
-    #        type: container
-    #        paths:
-    #          - /var/log/containers/*${data.kubernetes.container.id}.log
-
     processors:
-      - add_cloud_metadata:
-      - add_host_metadata:
+    - add_cloud_metadata:
+    - add_host_metadata:
 
-    cloud.id: ${ELASTIC_CLOUD_ID}
-    cloud.auth: ${ELASTIC_CLOUD_AUTH}
+    # Setup automático para criar índices
+    setup.template.enabled: true
+    setup.template.name: "filebeat"
+    setup.template.pattern: "filebeat-*"
+    setup.ilm.enabled: false
 
     output.elasticsearch:
-      hosts: ['${ELASTICSEARCH_HOST:elasticsearch}:${ELASTICSEARCH_PORT:9200}']
+      hosts: ['${ELASTICSEARCH_HOST:elasticsearch-service}:${ELASTICSEARCH_PORT:9200}']
       username: ${ELASTICSEARCH_USERNAME}
       password: ${ELASTICSEARCH_PASSWORD}
+      index: "filebeat-%{+yyyy.MM.dd}"
+
+    logging.level: info
+    logging.to_files: true
+    logging.files:
+      path: /var/log/filebeat
+      name: filebeat
+      keepfiles: 7
+      permissions: 0644
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: filebeat
-  namespace: kube-system
+  namespace: default
   labels:
     k8s-app: filebeat
 spec:
@@ -172,32 +167,30 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: filebeat
-        image: docker.elastic.co/beats/filebeat:8.10.4
+        image: docker.elastic.co/beats/filebeat:8.11.0
         args: [
           "-c", "/etc/filebeat.yml",
           "-e",
         ]
         env:
         - name: ELASTICSEARCH_HOST
-          value: "172.17.0.1" # Nome do serviço do Elasticsearch no seu cluster, ou o IP se estiver fora
+          value: "elasticsearch-service"
         - name: ELASTICSEARCH_PORT
           value: "9200"
         - name: ELASTICSEARCH_USERNAME
-          value: elastic # Seu usuário do Elasticsearch
+          value: "elastic"
         - name: ELASTICSEARCH_PASSWORD
-          value: "teste123" # Sua senha do Elasticsearch
+          value: "teste123"
         - name: ELASTIC_CLOUD_ID
-          value: "" # Deixe vazio se não estiver usando Elastic Cloud
+          value: ""
         - name: ELASTIC_CLOUD_AUTH
-          value: "" # Deixe vazio se não estiver usando Elastic Cloud
+          value: ""
         - name: NODE_NAME
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
         securityContext:
           runAsUser: 0
-          # If using Red Hat OpenShift uncomment this:
-          #privileged: true
         resources:
           limits:
             memory: 200Mi
@@ -228,10 +221,7 @@ spec:
       - name: varlog
         hostPath:
           path: /var/log
-      # data folder stores a registry of read status for all files, so we don't send everything again on a Filebeat pod restart
       - name: data
         hostPath:
-          # When filebeat runs as non-root user, this directory needs to be writable by group (g+w).
           path: /var/lib/filebeat-data
           type: DirectoryOrCreate
----

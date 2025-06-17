@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      initContainers:
+      - name: setup-kibana-user
+        image: curlimages/curl:latest
+        command: ['sh', '-c']
+        args:
+        - |
+          echo "Aguardando Elasticsearch ficar disponível..."
+          until curl -s -u elastic:teste123 http://elasticsearch-service:9200/_cluster/health; do
+            echo "Elasticsearch não está pronto ainda..."
+            sleep 10
+          done
+          
+          echo "Configurando senha do usuário kibana_system..."
+          curl -X POST -u elastic:teste123 \
+            -H "Content-Type: application/json" \
+            http://elasticsearch-service:9200/_security/user/kibana_system/_password \
+            -d '{"password":"teste123"}' || echo "Senha já configurada ou erro ignorável"
+            
+          echo "Setup concluído!"
+        env:
+        - name: ELASTICSEARCH_HOST
+          value: "elasticsearch-service"
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana:8.11.0
+        ports:
+        - containerPort: 5601
+        env:
+        - name: ELASTICSEARCH_HOSTS
+          value: "http://elasticsearch-service:9200"
+        - name: ELASTICSEARCH_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch-credentials
+              key: kibana-username
+        - name: ELASTICSEARCH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch-credentials
+              key: kibana-password
+        - name: xpack.security.enabled
+          value: "true"
+        - name: xpack.encryptedSavedObjects.encryptionKey
+          value: "something_at_least_32_characters_long"
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+        readinessProbe:
+          httpGet:
+            path: /api/status
+            port: 5601
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/status
+            port: 5601
+          initialDelaySeconds: 90
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-service
+  namespace: default
+spec:
+  selector:
+    app: kibana
+  ports:
+  - name: http
+    port: 5601
+    targetPort: 5601
+  type: LoadBalancer
