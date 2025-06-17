@@ -137,49 +137,39 @@ metadata:
 data:
   metricbeat.yml: |-
     metricbeat.config.modules:
-      # Módulo para métricas do sistema
       path: ${path.config}/modules.d/*.yml
       reload.enabled: false
 
     metricbeat.modules:
-    # Métricas do sistema (CPU, memória, disco, rede)
+    # Métricas do sistema do host
     - module: system
       metricsets:
         - cpu
         - load
         - memory
         - network
-        - process
-        - process_summary
-        - socket_summary
         - filesystem
         - fsstat
-        - diskio
       enabled: true
       period: 10s
-      processes: ['.*']
 
-    # Métricas do Docker/Containers
-    - module: docker
+    # Métricas específicas por POD via Kubelet
+    - module: kubernetes
       metricsets:
+        - pod
         - container
-        - cpu
-        - diskio
-        - healthcheck
-        - info
-        - memory
-        - network
-      hosts: ["unix:///var/run/docker.sock"]
       period: 10s
-      enabled: true
+      host: ${NODE_NAME}
+      hosts: ["https://${NODE_NAME}:10250"]
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      ssl.verification_mode: none
+      add_metadata: true
 
-    # Métricas do Kubernetes
+    # Métricas dos Nodes
     - module: kubernetes
       metricsets:
         - node
         - system
-        - pod
-        - container
         - volume
       period: 10s
       host: ${NODE_NAME}
@@ -187,14 +177,27 @@ data:
       bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
       ssl.verification_mode: none
 
-    # Métricas da API do Kubernetes
+    # Métricas da API do Kubernetes (deployments, services, etc)
     - module: kubernetes
       metricsets:
-        - apiserver
-      hosts: ["https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}"]
-      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-      ssl.verification_mode: none
-      period: 30s
+        - state_node
+        - state_deployment
+        - state_replicaset
+        - state_pod
+        - state_container
+        - state_service
+        - state_persistentvolume
+        - state_persistentvolumeclaim
+      period: 10s
+      hosts: ["kube-state-metrics:8080"]
+      add_metadata: true
+
+    # Métricas de eventos do Kubernetes
+    - module: kubernetes
+      metricsets:
+        - event
+      period: 10s
+      add_metadata: true
 
     processors:
     - add_cloud_metadata:
@@ -204,6 +207,16 @@ data:
         matchers:
         - logs_path:
             logs_path: "/var/log/containers/"
+        - field_format:
+            format: '%{[kubernetes.pod.name]}.%{[kubernetes.namespace]}'
+        default_matchers:
+          enabled: true
+          default_indexers:
+            enabled: true
+        indexers:
+        - pod_name:
+        - pod_uid:
+        - container_name:
 
     # Setup automático para criar índices
     setup.template.enabled: true
